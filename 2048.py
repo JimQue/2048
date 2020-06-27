@@ -65,16 +65,42 @@ def move(direction):
     #move to right
     if direction == 'r':
         for row in range(len(board)):
-            while not isEmpty(board[row]) and board[row][-1] == 0:
+            if not isEmpty(board[row]):
                 n = 7
-                print(board)
                 while n >= 0:
-                    if board[row][n] != 0 and board[row][n+1] == 0:
-                        
-                        board[row][n].x += gap
-                        board[row][n+1] = board[row][n]
-                        board[row][n] = 0
+                    if board[row][n] != 0:
+                        for i in range(n+1, 8):
+                            #if right is empty
+                            if board[row][i] == 0:
+                                (board[row][i-1]).x += gap
+                                board[row][i] = board[row][i-1]
+                                board[row][i-1] = 0
+                            #if colide with tile with same value
+                            elif board[row][i].val == board[row][i-1].val:
+                                board[row][i-1] = 0
+                                board[row][i].val = board[row][i].val * 2
+                            else:
+                                break
                     n -= 1
+    #move to left
+    if direction == 'l':
+        for row in range(len(board)):
+            if not isEmpty(board[row]):
+                for n in range(8):
+                    if board[row][n] != 0:
+                        i = n - 1
+                        while i >= 0:
+                            if board[row][i] == 0:
+                                (board[row][i+1]).x -= gap
+                                board[row][i] = board[row][i+1]
+                                board[row][i+1] = 0
+                            elif board[row][i].val == board[row][i+1].val:
+                                board[row][i+1] = 0
+                                board[row][i].val = board[row][i].val * 2
+                            i -= 1
+
+
+
             
             
 
@@ -114,6 +140,8 @@ while True:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
                 move('r')
+            if event.key == pygame.K_LEFT:
+                move('l')
 
     redraw()
     pygame.display.update()
