@@ -15,19 +15,46 @@ red = (255, 0, 0)
 green = (0, 255, 0)
 #board
 board = [[0 for i in range(4)] for i in range(4)]
+#check if any tile has been moved to decide whether to generate new tile
+moved = False
 
 
 
 #tiles
 class tile():
+    #moved_x , moved_y are position after moved
     def __init__(self, val, x, y, color):
         self.val = val
         self.x = x
         self.y = y
+        self.moved_x = x
+        self.moved_y = y
         self.color = color
+        self.width = gap
+        self.height = gap
     
     def draw(self):
-        pygame.draw.rect(win, red, (self.x, self.y, gap, gap))
+        global moved, collide
+        #moving animation
+        if self.x < self.moved_x:
+            self.x += gap//4
+        if self.x > self.moved_x:
+            self.x -= gap//4
+        if self.y < self.moved_y:
+            self.y += gap//4
+        if self.y > self.moved_y:
+            self.y -= gap//4
+        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height))
+        #generate new tile after the moving is done
+        if self.x == self.moved_x and self.y == self.moved_y and moved:
+            generate()
+            moved = False
+            #animation when collide
+            # if collide:
+            #     self.width = self.height = gap//2
+            #     self.draw()
+            #     self.width = self.height = gap
+            #     collide = False
         text_width, text_height = myfont.size(str(self.val))
         text = myfont.render(str(self.val), False, black)
         win.blit(text, ((self.x + (gap - text_width)//2),(self.y + (gap - text_height)//2)))
@@ -60,8 +87,7 @@ def isEmpty(row):
 
 #moving all tiles toward certain direction
 def move(direction):
-    #check if any tile is moved to decide whether to generate new tile
-    moved = False
+    global moved, collide
     #move to right
     if direction == 'r':
         for row in range(len(board)):
@@ -72,7 +98,7 @@ def move(direction):
                         for i in range(n+1, 4):
                             #if right is empty
                             if board[row][i] == 0:
-                                (board[row][i-1]).x += gap
+                                (board[row][i-1]).moved_x += gap
                                 board[row][i] = board[row][i-1]
                                 board[row][i-1] = 0
                                 moved = True
@@ -80,11 +106,8 @@ def move(direction):
                             elif board[row][i].val == board[row][i-1].val:
                                 board[row][i-1] = 0
                                 board[row][i].val = board[row][i].val * 2
-                                board[row][i].color = green
-                                print('draw')
-                                board[row][i].draw()
-                                board[row][i].color = red
                                 moved = True
+                            
                             
                     n -= 1
     #move to left
@@ -96,7 +119,7 @@ def move(direction):
                         i = n - 1
                         while i >= 0:
                             if board[row][i] == 0:
-                                (board[row][i+1]).x -= gap
+                                (board[row][i+1]).moved_x -= gap
                                 board[row][i] = board[row][i+1]
                                 board[row][i+1] = 0
                                 moved = True
@@ -104,6 +127,7 @@ def move(direction):
                                 board[row][i+1] = 0
                                 board[row][i].val = board[row][i].val * 2
                                 moved = True
+                                
                             i -= 1
 
     #move upward
@@ -115,7 +139,7 @@ def move(direction):
                     while i >= 0:
                         #if empty, move
                         if board[i][c] == 0:
-                            board[i+1][c].y -= gap
+                            board[i+1][c].moved_y -= gap
                             board[i][c] = board[i+1][c]
                             board[i+1][c] = 0
                             moved = True
@@ -124,6 +148,7 @@ def move(direction):
                             board[i+1][c] = 0
                             board[i][c].val = board[i][c].val * 2
                             moved = True
+                           
                         i -= 1
     #move downward
     if direction == 'd':
@@ -133,7 +158,7 @@ def move(direction):
                 if board[row][c] != 0:
                     for i in range(row+1, 4):
                         if board[i][c] == 0:
-                            board[i-1][c].y += gap
+                            board[i-1][c].moved_y += gap
                             board[i][c] = board[i-1][c]
                             board[i-1][c] = 0
                             moved = True
@@ -142,11 +167,6 @@ def move(direction):
                             board[i][c].val = board[i][c].val * 2
                             moved = True
                 row -= 1
-
-    #generate new tile after move
-    if moved:
-        generate()
-
 
 
             
@@ -184,7 +204,7 @@ def redraw():
 
 #game loop
 while True:
-    pygame.time.Clock().tick(30)
+    pygame.time.Clock().tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
