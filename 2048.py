@@ -17,7 +17,8 @@ green = (0, 255, 0)
 board = [[0 for i in range(4)] for i in range(4)]
 #check if any tile has been moved to decide whether to generate new tile
 moved = False
-
+#list of tiles that collide
+collision = []
 
 
 #tiles
@@ -32,6 +33,7 @@ class tile():
         self.color = color
         self.width = gap
         self.height = gap
+        self.moved_val = val
     
     def draw(self):
         global moved, collide
@@ -44,17 +46,11 @@ class tile():
             self.y += gap//4
         if self.y > self.moved_y:
             self.y -= gap//4
-        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height))
         #generate new tile after the moving is done
-        if self.x == self.moved_x and self.y == self.moved_y and moved:
-            generate()
-            moved = False
-            #animation when collide
-            # if collide:
-            #     self.width = self.height = gap//2
-            #     self.draw()
-            #     self.width = self.height = gap
-            #     collide = False
+        if self.x == self.moved_x and self.y == self.moved_y:
+            if self.val != self.moved_val:
+                board[self.y//gap][self.x//gap].val = self.moved_val
+        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height))
         text_width, text_height = myfont.size(str(self.val))
         text = myfont.render(str(self.val), False, black)
         win.blit(text, ((self.x + (gap - text_width)//2),(self.y + (gap - text_height)//2)))
@@ -77,17 +73,9 @@ generate(2)
 
 
 
-#check if row is empty
-def isEmpty(row):
-    for r in row:
-        if r != 0:
-            return False
-    return True
-    
-
 #moving all tiles toward certain direction
 def move(direction):
-    global moved, collide
+    global moved, collision
     #move to right
     if direction == 'r':
         for row in range(len(board)):
@@ -103,10 +91,13 @@ def move(direction):
                                 board[row][i-1] = 0
                                 moved = True
                             #if colide with tile with same value
-                            elif board[row][i].val == board[row][i-1].val:
+                            elif board[row][i].moved_val == board[row][i-1].moved_val:
+                                (board[row][i-1]).moved_x += gap
+                                collision.append(board[row][i-1])
                                 board[row][i-1] = 0
-                                board[row][i].val = board[row][i].val * 2
+                                board[row][i].moved_val = 2 * board[row][i].moved_val
                                 moved = True
+                                break
                             
                             
                     n -= 1
@@ -123,10 +114,13 @@ def move(direction):
                                 board[row][i] = board[row][i+1]
                                 board[row][i+1] = 0
                                 moved = True
-                            elif board[row][i].val == board[row][i+1].val:
+                            elif board[row][i].moved_val == board[row][i+1].moved_val:
+                                (board[row][i+1]).moved_x -= gap
+                                collision.append(board[row][i+1])
                                 board[row][i+1] = 0
-                                board[row][i].val = board[row][i].val * 2
+                                board[row][i].moved_val = 2 * board[row][i].moved_val
                                 moved = True
+                                break
                                 
                             i -= 1
 
@@ -144,10 +138,13 @@ def move(direction):
                             board[i+1][c] = 0
                             moved = True
                         #if colide, add
-                        elif board[i+1][c].val == board[i][c].val:
+                        elif board[i+1][c].moved_val == board[i][c].moved_val:
+                            board[i+1][c].moved_y -= gap
+                            collision.append(board[i+1][c])
                             board[i+1][c] = 0
-                            board[i][c].val = board[i][c].val * 2
+                            board[i][c].moved_val = 2 * board[i][c].moved_val
                             moved = True
+                            break
                            
                         i -= 1
     #move downward
@@ -162,17 +159,38 @@ def move(direction):
                             board[i][c] = board[i-1][c]
                             board[i-1][c] = 0
                             moved = True
-                        elif board[i][c].val == board[i-1][c].val:
+                        elif board[i][c].moved_val == board[i-1][c].moved_val:
+                            board[i-1][c].moved_y += gap
+                            collision.append(board[i-1][c])
                             board[i-1][c] = 0
-                            board[i][c].val = board[i][c].val * 2
+                            board[i][c].moved_val = 2 * board[i][c].moved_val
                             moved = True
+                            break
                 row -= 1
 
 
             
-            
+#check if tiles have all been moved
+def all_moved():
+    global collision
+    for row in board:
+        for t in row:
+            if t.x != t.moved_x or t.y != t.moved_y:
+                return False
+    for t in collision:
+        if t.x != t.moved_x or t.y != t.moved_y:
+                return False
+    collision = []
+    return True
 
-                
+
+#check if row is empty
+def isEmpty(row):
+    for r in row:
+        if r != 0:
+            return False
+    return True
+          
 
 
 
@@ -190,10 +208,18 @@ def grid():
 #drawing all tiles on board
 def draw_tiles():
     #draw all tiles on board
+    global moved
+    for t in collision:
+        if t.moved_x != t.x or t.moved_y != t.y:
+            t.draw()
     for row in board:
         for t in row:
             if t != 0:
                 t.draw()
+    #generate new tile after every tile is in place
+    if moved and all_moved:
+        moved = False
+        generate()
 
 #refresh window
 def redraw():
